@@ -8,103 +8,81 @@ ServiceInvokeUtils 是一个通用的 Spring Service 方法调用和 JSON 转换
 
 ## 主要功能
 
-- 通过 Service 类型或 Bean 名称动态调用方法
-- 自动将方法返回结果转换为键值对 Map
-- **新增：** 支持泛型类型安全的方法调用
-- **新增：** 直接返回指定类型的结果
+- 通过 Service 类型动态调用方法
+- 自动将方法返回结果转换为指定类型
+- 支持泛型类型安全的方法调用
 - 支持 JSON 字符串解析和转换
 - 提供类型安全的值获取方法
 - 完善的异常处理和日志记录
+- 智能参数类型匹配和兼容性检查
 
 ## 核心方法
 
-### 1. invokeServiceForMap - 通过类型调用（返回Map）
+### 1. invokeService - 通用方法调用（返回指定类型）
 
 ```java
-public static <T> Map<String, Object> invokeServiceForMap(Class<T> serviceClass, String methodName, Object... args)
+public static <T, R> T invokeService(Class<T> returnType, Class<R> serviceClass, String methodName, Object... args)
 ```
 
 **参数说明：**
+- `returnType`: 期望返回的类型 Class
 - `serviceClass`: Service 类的 Class 对象
 - `methodName`: 要调用的方法名
 - `args`: 方法参数（可变参数）
 
-**返回值：** 包含方法返回结果的键值对 Map
-
-### 2. invokeServiceForMap - 通过Bean名称调用（返回Map）
-
-```java
-public static Map<String, Object> invokeServiceForMap(String serviceBeanName, String methodName, Object... args)
-```
-
-**参数说明：**
-- `serviceBeanName`: Spring 容器中的 Bean 名称
-- `methodName`: 要调用的方法名
-- `args`: 方法参数（可变参数）
-
-**返回值：** 包含方法返回结果的键值对 Map
-
-### 3. invokeServiceForType - 通过类型调用（返回指定类型）🆕
-
-```java
-public static <T, R> R invokeServiceForType(Class<T> serviceClass, String methodName, Class<R> returnType, Object... args)
-```
-
-**参数说明：**
-- `serviceClass`: Service 类的 Class 对象
-- `methodName`: 要调用的方法名
-- `returnType`: 期望返回的类型 Class
-- `args`: 方法参数（可变参数）
-
 **返回值：** 指定类型的结果对象
 
-### 4. invokeServiceForType - 通过Bean名称调用（返回指定类型）🆕
+### 2. convertJsonToMap - JSON转Map
 
 ```java
-public static <R> R invokeServiceForType(String serviceBeanName, String methodName, Class<R> returnType, Object... args)
+public static Map<String, Object> convertJsonToMap(String jsonString)
 ```
 
 **参数说明：**
-- `serviceBeanName`: Spring 容器中的 Bean 名称
-- `methodName`: 要调用的方法名
-- `returnType`: 期望返回的类型 Class
-- `args`: 方法参数（可变参数）
+- `jsonString`: JSON字符串
 
-**返回值：** 指定类型的结果对象
+**返回值：** 包含JSON数据的Map对象
 
 ## 使用示例
 
-### 示例1：通过Service类型调用无参方法（返回Map）
+### 示例1：调用Service方法获取用户信息
 
 ```java
-// 调用 UserService 的 getAllUsers 方法
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
+// 直接获取用户对象
+UserDTO user = ServiceInvokeUtils.invokeService(
+    UserDTO.class,           // 返回类型
+    UserService.class,       // Service类
+    "getUserById",          // 方法名
+    1001L                    // 参数
+);
+
+if (user != null) {
+    System.out.println("用户名: " + user.getUserName());
+    System.out.println("邮箱: " + user.getEmail());
+} else {
+    System.out.println("获取用户信息失败");
+}
+```
+
+### 示例2：调用Service方法获取用户列表
+
+```java
+// 获取用户列表（需要使用TypeReference处理泛型）
+String jsonResult = ServiceInvokeUtils.invokeService(
+    String.class,            // 先获取JSON字符串
     UserService.class, 
     "getAllUsers"
 );
 
-// 获取结果
-String status = ServiceInvokeUtils.getStringValue(result, "status");
-Integer count = ServiceInvokeUtils.getIntValue(result, "count");
+// 然后转换为具体类型
+List<UserDTO> users = JacksonUtils.fromList(jsonResult, UserDTO.class);
+
+if (users != null && !users.isEmpty()) {
+    users.forEach(u -> System.out.println("用户: " + u.getUserName()));
+}
 ```
 
-### 示例2：通过Bean名称调用带参方法（返回Map）
-
-```java
-// 调用 userService Bean 的 getUserById 方法
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
-    "userService", 
-    "getUserById", 
-    1001L
-);
-
-// 获取用户信息
-String userName = ServiceInvokeUtils.getStringValue(result, "userName");
-String email = ServiceInvokeUtils.getStringValue(result, "email");
-Boolean isActive = ServiceInvokeUtils.getBooleanValue(result, "isActive");
-```
-
-### 示例3：调用复杂参数方法（返回Map）
+### 示例3：调用复杂参数方法
 
 ```java
 // 创建查询条件
@@ -112,268 +90,244 @@ UserQueryDTO queryDTO = new UserQueryDTO();
 queryDTO.setAge(25);
 queryDTO.setCity("北京");
 
-// 调用查询方法
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
+// 调用查询方法获取分页结果
+PageResult<UserDTO> pageResult = ServiceInvokeUtils.invokeService(
+    PageResult.class,        // 返回类型
     UserService.class, 
     "searchUsers", 
-    queryDTO, 
-    1, 
-    10
+    queryDTO,               // 查询条件
+    1,                      // 页码
+    10                      // 页大小
 );
 
-// 获取分页结果
-Integer total = ServiceInvokeUtils.getIntValue(result, "total");
-Integer pageSize = ServiceInvokeUtils.getIntValue(result, "pageSize");
+if (pageResult != null) {
+    System.out.println("总数: " + pageResult.getTotal());
+    System.out.println("当前页数据: " + pageResult.getRecords().size());
+}
 ```
 
-### 示例4：类型安全调用（返回指定类型）🆕
+### 示例4：JSON字符串处理
 
 ```java
-// 直接获取用户对象
-UserDTO user = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "getUserById", 
-    UserDTO.class,
-    1001L
-);
-
-// 直接获取用户列表
-List<UserDTO> users = ServiceInvokeUtils.invokeServiceForType(
-    "userService", 
-    "getAllUsers", 
-    new TypeReference<List<UserDTO>>(){}.getClass()
-);
-
-// 直接获取分页结果
-PageResult<UserDTO> pageResult = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "searchUsers", 
-    PageResult.class,
-    queryDTO, 1, 10
-);
-```
-
-### 示例5：泛型值获取🆕
-
-```java
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
-    UserService.class, 
-    "getUserInfo", 
+// 获取JSON字符串结果
+String jsonResult = ServiceInvokeUtils.invokeService(
+    String.class,
+    UserService.class,
+    "getUserInfo",
     userId
 );
 
-// 使用泛型方法获取指定类型的值
-String userName = ServiceInvokeUtils.getValue(result, "userName", String.class);
-Integer age = ServiceInvokeUtils.getValue(result, "age", Integer.class);
-Date createTime = ServiceInvokeUtils.getValue(result, "createTime", Date.class);
-UserProfile profile = ServiceInvokeUtils.getValue(result, "profile", UserProfile.class);
+// 转换为Map进行处理
+Map<String, Object> resultMap = ServiceInvokeUtils.convertJsonToMap(jsonResult);
+
+// 使用类型安全的值获取方法
+String userName = ServiceInvokeUtils.getStringValue(resultMap, "userName");
+Integer age = ServiceInvokeUtils.getIntValue(resultMap, "age");
+Boolean isActive = ServiceInvokeUtils.getBooleanValue(resultMap, "isActive");
+
+// 使用泛型方法获取值（推荐）
+String email = ServiceInvokeUtils.getValue(resultMap, "email", String.class);
+Date createTime = ServiceInvokeUtils.getValue(resultMap, "createTime", Date.class);
+```
+
+### 示例5：错误处理最佳实践
+
+```java
+try {
+    UserDTO user = ServiceInvokeUtils.invokeService(
+        UserDTO.class,
+        UserService.class,
+        "getUserById",
+        userId
+    );
+    
+    if (user == null) {
+        log.warn("用户不存在或调用失败: {}", userId);
+        return ResponseResult.error("用户不存在");
+    }
+    
+    return ResponseResult.success(user);
+    
+} catch (Exception e) {
+    log.error("调用用户服务异常: {}", e.getMessage(), e);
+    return ResponseResult.error("系统异常");
+}
 ```
 
 ## 辅助方法
 
-### JSON转换方法
-
-```java
-// 直接调用Service方法获取JSON字符串
-String jsonResult = ServiceInvokeUtils.invokeServiceForJson(serviceInstance, "methodName", args);
-
-// 将JSON字符串转换为Map
-Map<String, Object> map = ServiceInvokeUtils.convertJsonToMap(jsonResult);
-
-// 🆕 将JSON字符串转换为指定类型
-UserDTO user = ServiceInvokeUtils.convertJsonToType(jsonResult, UserDTO.class);
-```
-
 ### 类型安全的值获取方法
 
 ```java
-// 传统方法
+// 基础类型获取
 String stringValue = ServiceInvokeUtils.getStringValue(resultMap, "key");
 Integer intValue = ServiceInvokeUtils.getIntValue(resultMap, "key");
 Boolean boolValue = ServiceInvokeUtils.getBooleanValue(resultMap, "key");
 
-// 🆕 泛型方法（推荐）
+// 泛型方法（推荐使用）
 String stringValue = ServiceInvokeUtils.getValue(resultMap, "key", String.class);
 Integer intValue = ServiceInvokeUtils.getValue(resultMap, "key", Integer.class);
 Boolean boolValue = ServiceInvokeUtils.getValue(resultMap, "key", Boolean.class);
 CustomObject customObj = ServiceInvokeUtils.getValue(resultMap, "key", CustomObject.class);
 ```
 
+## 技术特性
+
+### 1. 智能方法查找
+
+工具类支持以下方法查找策略：
+1. **精确参数类型匹配**：优先查找参数类型完全匹配的方法
+2. **参数类型兼容性检查**：支持继承关系和基本类型与包装类型的兼容
+3. **无参方法回退**：当传入参数为空时，尝试查找无参方法
+
+### 2. 类型转换支持
+
+- **基本类型转换**：String, Integer, Long, Boolean等
+- **复杂对象转换**：通过JSON序列化/反序列化实现
+- **集合类型处理**：支持List、Set、Map等集合类型
+- **自动类型推断**：根据目标类型自动选择转换策略
+
+### 3. 异常处理机制
+
+- **完善的日志记录**：详细记录方法调用过程和异常信息
+- **优雅的异常处理**：异常时返回null而不是抛出异常
+- **参数验证**：自动验证必要参数的有效性
+
 ## 注意事项
 
 ### 1. 依赖要求
 
-- Spring Framework（用于Bean获取）
-- Jackson（用于JSON处理）
-- Lombok（用于日志）
-- 需要 `SpringUtils` 和 `JacksonUtils` 工具类支持
+```xml
+<!-- Spring Framework -->
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context</artifactId>
+</dependency>
 
-### 2. 方法查找规则
+<!-- Jackson -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+</dependency>
 
-工具类按以下顺序查找方法：
-1. 精确参数类型匹配
-2. 同名方法且参数数量匹配
-3. 无参方法（当传入参数为空时）
+<!-- Lombok -->
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+</dependency>
+```
 
-### 3. 异常处理
+需要配套的工具类：
+- `SpringUtils`：用于获取Spring Bean
+- `JacksonUtils`：用于JSON处理
 
-- 所有异常都会被捕获并记录日志
-- `invokeServiceForMap` 发生异常时返回空的 HashMap
-- `invokeServiceForType` 发生异常时返回 null
-- 建议检查返回结果是否为空
-
-### 4. 性能考虑
+### 2. 性能考虑
 
 - 使用反射调用，性能略低于直接调用
 - 适合配置化、动态化场景
 - 不建议在高频调用场景中使用
+- 建议在业务逻辑层使用，避免在数据访问层频繁调用
 
-### 5. 类型转换规则🆕
-
-`getValue` 方法支持以下类型转换：
-- 基本类型：String, Integer, Long, Double, Boolean
-- 复杂类型：通过JSON序列化/反序列化转换
-- 如果类型匹配，直接返回
-- 转换失败时返回 null 并记录警告日志
-
-## 最佳实践
-
-### 1. 错误处理
+### 3. 类型安全建议
 
 ```java
-// Map方式
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
-    UserService.class, 
-    "getUserById", 
+// 推荐：明确指定返回类型
+UserDTO user = ServiceInvokeUtils.invokeService(
+    UserDTO.class,
+    UserService.class,
+    "getUserById",
     userId
 );
 
-if (result.isEmpty()) {
-    // 处理调用失败的情况
-    log.error("调用UserService.getUserById失败");
-    return;
-}
-
-// 类型安全方式（推荐）🆕
-UserDTO user = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "getUserById", 
-    UserDTO.class,
-    userId
-);
-
-if (user == null) {
-    // 处理调用失败的情况
-    log.error("调用UserService.getUserById失败");
-    return;
-}
-```
-
-### 2. 参数验证
-
-```java
-// 在调用前验证必要参数
-if (userId == null) {
-    throw new IllegalArgumentException("用户ID不能为空");
-}
-
-UserDTO user = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "getUserById", 
-    UserDTO.class,
+// 不推荐：使用Object类型
+Object result = ServiceInvokeUtils.invokeService(
+    Object.class,
+    UserService.class,
+    "getUserById",
     userId
 );
 ```
 
-### 3. 泛型使用建议🆕
-
-```java
-// 推荐：使用类型安全的方法
-UserDTO user = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "getUserById", 
-    UserDTO.class,
-    userId
-);
-
-// 而不是：
-Map<String, Object> result = ServiceInvokeUtils.invokeServiceForMap(
-    UserService.class, 
-    "getUserById", 
-    userId
-);
-String userName = ServiceInvokeUtils.getStringValue(result, "userName");
-```
-
-### 4. 日志配置
-
-建议将 `com.chestnut.common.utils.ServiceInvokeUtils` 的日志级别设置为 `INFO` 或 `DEBUG`，以便跟踪方法调用情况。
+### 4. 日志配置建议
 
 ```yaml
 logging:
   level:
-    com.chestnut.common.utils.ServiceInvokeUtils: DEBUG
+    com.chestnut.api.utils.ServiceInvokeUtils: INFO
+    # 开发环境可以设置为DEBUG查看详细调用信息
+    # com.chestnut.api.utils.ServiceInvokeUtils: DEBUG
 ```
 
 ## 常见问题
 
-### Q1: 为什么返回空Map或null？
+### Q1: 为什么返回null？
 
 可能的原因：
-- Service Bean 不存在
-- 方法名错误
+- Service Bean 不存在或未正确注册
+- 方法名拼写错误
 - 参数类型不匹配
-- 方法执行异常
-- JSON解析失败
+- 方法执行过程中抛出异常
+- JSON转换失败
 
-### Q2: 如何处理复杂返回类型？
+**解决方案：**
+1. 检查Service是否正确注册到Spring容器
+2. 确认方法名和参数类型
+3. 查看日志中的详细错误信息
+4. 使用DEBUG级别日志跟踪调用过程
 
-**推荐使用新的泛型方法：**
+### Q2: 如何处理泛型集合类型？
+
 ```java
-// 直接获取复杂类型
-PageResult<UserDTO> result = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "searchUsers", 
-    PageResult.class,
-    queryDTO
+// 方法1：先获取JSON字符串，再转换
+String jsonResult = ServiceInvokeUtils.invokeService(
+    String.class,
+    UserService.class,
+    "getUserList"
 );
+List<UserDTO> users = JacksonUtils.fromList(jsonResult, UserDTO.class);
+
+// 方法2：使用TypeReference
+String jsonResult = ServiceInvokeUtils.invokeService(
+    String.class,
+    UserService.class,
+    "getUserList"
+);
+List<UserDTO> users = JacksonUtils.from(jsonResult, new TypeReference<List<UserDTO>>(){});
 ```
 
-### Q3: 支持哪些参数类型？
+### Q3: 参数类型匹配规则是什么？
 
-支持所有Java对象类型，工具类会自动获取参数的运行时类型进行方法匹配。
+工具类按以下优先级匹配方法：
+1. 精确类型匹配
+2. 继承关系匹配（子类可以赋值给父类）
+3. 基本类型与包装类型互相兼容
+4. 参数数量匹配的同名方法
 
-### Q4: 泛型类型转换失败怎么办？🆕
-
-- 检查目标类型是否有无参构造函数
-- 确保JSON格式正确
-- 查看日志中的详细错误信息
-- 对于复杂类型，确保所有字段都可序列化
-
-### Q5: 如何处理泛型集合类型？🆕
+### Q4: 如何调试方法调用问题？
 
 ```java
-// 对于简单的List<String>等，可以直接使用
-List<String> names = ServiceInvokeUtils.invokeServiceForType(
-    UserService.class, 
-    "getUserNames", 
-    List.class
-);
+// 1. 开启DEBUG日志
+// 2. 检查方法是否存在
+Method[] methods = UserService.class.getMethods();
+for (Method method : methods) {
+    if ("getUserById".equals(method.getName())) {
+        System.out.println("找到方法: " + method);
+        System.out.println("参数类型: " + Arrays.toString(method.getParameterTypes()));
+    }
+}
 
-// 对于复杂的泛型类型，建议先获取JSON再手动转换
-String jsonResult = ServiceInvokeUtils.invokeServiceForJson(service, "method", args);
-List<UserDTO> users = JacksonUtils.fromJson(jsonResult, new TypeReference<List<UserDTO>>(){});
+// 3. 验证Service Bean
+UserService userService = SpringUtils.getBean(UserService.class);
+System.out.println("Service实例: " + userService);
 ```
 
 ## 更新日志
 
 - **v1.0**: 初始版本，支持基本的Service方法调用和JSON转换
-- **v1.1**: 优化代码结构，增强参数验证和错误处理
-- **v1.2**: 添加类型安全的值获取方法，提升性能
-- **v2.0**: 🆕 **重大更新**
-  - 新增泛型支持的 `invokeServiceForType` 方法
-  - 新增 `convertJsonToType` 泛型JSON转换方法
-  - 新增 `getValue` 泛型值获取方法
-  - 增强类型安全性和代码可读性
+- **v2.0**: 重构核心架构
+  - 简化API设计，统一为`invokeService`方法
+  - 增强参数类型兼容性检查
+  - 优化异常处理和日志记录
+  - 改进JSON转换逻辑
+  - 增加智能方法查找机制
   - 更新作者信息为 shenmiren21
-  - 优化错误处理和日志记录
