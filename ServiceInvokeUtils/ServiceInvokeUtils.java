@@ -391,6 +391,33 @@ public class ServiceInvokeUtils {
     }
 
     /**
+     * 安全获取长整型值
+     * @param map 数据Map
+     * @param key 键
+     * @return 长整型值
+     */
+    public static Long getLongValue(Map<String, Object> map, String key) {
+        if (map == null || StringUtils.isEmpty(key)) {
+            return null;
+        }
+        
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        
+        try {
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            log.warn(PARAM_CONVERSION_FAILED_WARNING + ": {} -> Long, 值: {}", key, value);
+            return null;
+        }
+    }
+
+    /**
      * 安全获取指定类型的值
      * @param <T> 目标类型
      * @param map 数据Map
