@@ -16,6 +16,46 @@ ServiceInvokeUtils 是一个通用的 Spring Service 方法调用和 JSON 转换
 - 完善的异常处理和日志记录
 - 智能参数类型匹配和兼容性检查
 
+## 安装
+
+1. 确保项目中已引入 ServiceInvokeUtils 工具类库
+2. 确保项目中已引入 Jackson 库（用于 JSON 转换）
+3. 确保项目中已引入 Spring 框架（用于动态代理）
+
+## 配置
+
+```xml
+
+        <!-- Jackson -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.15.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+            <version>2.15.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.21</version>
+        </dependency>
+
+
+```
+
 ## 核心方法
 
 ### 1. invokeService - 通用方法调用（返回指定类型）
