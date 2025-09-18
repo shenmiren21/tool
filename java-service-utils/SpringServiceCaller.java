@@ -1,10 +1,10 @@
 package com.chestnut.api.utils;
 
-import com.chestnut.common.utils.JacksonUtils;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.chestnut.common.utils.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -18,10 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author shenmiren21
  */
 @Slf4j
-public class ServiceInvokeUtils {
+public class SpringServiceCaller {
 
     // 日志常量
-    private static final String LOG_PREFIX = "[ServiceInvokeUtils]";
+    private static final String LOG_PREFIX = "[SpringServiceCaller]";
     private static final String PARAM_NOT_FOUND_ERROR = LOG_PREFIX + " 参数不能为空";
     private static final String METHOD_NOT_FOUND_ERROR = LOG_PREFIX + " 未找到方法";
     private static final String INVOCATION_FAILED_ERROR = LOG_PREFIX + " 调用方法失败";
@@ -51,7 +51,7 @@ public class ServiceInvokeUtils {
      * @return 返回指定类型的值
      */
     public static <T, R> T invokeService(Class<T> returnType, Class<R> serviceClass, String methodName, Object... args) {
-        if (serviceClass == null || StringUtils.isEmpty(methodName)) {
+        if (serviceClass == null || StrUtil.isEmpty(methodName)) {
             log.error(PARAM_NOT_FOUND_ERROR + ": serviceClass={}, methodName={}", serviceClass, methodName);
             return null;
         }
@@ -85,7 +85,7 @@ public class ServiceInvokeUtils {
      */
     @SuppressWarnings("unchecked")
     private static <T> T convertJsonToType(String jsonString, Class<T> targetType) {
-        if (StringUtils.isEmpty(jsonString) || targetType == null) {
+        if (StrUtil.isEmpty(jsonString) || targetType == null) {
             log.warn(JSON_RESULT_NULL_WARN + ": jsonString={}, targetType={}",
                     jsonString != null ? "非空" : "空", targetType);
             return null;
@@ -101,7 +101,7 @@ public class ServiceInvokeUtils {
                     try {
                         Map<String, Object> map = convertJsonToMap(jsonString);
                         if (map != null && !map.isEmpty()) {
-                            String formattedJson = JacksonUtils.to(map);
+                            String formattedJson = JSONUtil.toJsonStr(map);
                             log.info(LOG_PREFIX + " String类型JSON格式化成功");
                             return (T) formattedJson;
                         }
@@ -112,7 +112,7 @@ public class ServiceInvokeUtils {
                 return (T) jsonString;
             }
 
-            T result = JacksonUtils.from(jsonString, targetType);
+            T result = JSONUtil.toBean(jsonString, targetType);
 
             if (result == null) {
                 log.warn(TAG_RESULT_NULL_WARN);
@@ -136,13 +136,13 @@ public class ServiceInvokeUtils {
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> convertJsonToMap(String jsonString) {
-        if (StringUtils.isEmpty(jsonString)) {
+        if (StrUtil.isEmpty(jsonString)) {
             log.warn(LOG_PREFIX + " JSON字符串为空");
             return new HashMap<>();
         }
 
         try {
-            return JacksonUtils.from(jsonString, Map.class);
+            return JSONUtil.toBean(jsonString, Map.class);
         } catch (Exception e) {
             log.error(LOG_PREFIX + " JSON转Map失败: {}, 错误: {}", jsonString, e.getMessage());
             return new HashMap<>();
@@ -157,7 +157,7 @@ public class ServiceInvokeUtils {
      * @return JSON字符串
      */
     private static String invokeServiceForJson(Object service, String methodName, Object[] args) {
-        if (service == null || StringUtils.isEmpty(methodName)) {
+        if (service == null || StrUtil.isEmpty(methodName)) {
             log.error(PARAM_NOT_FOUND_ERROR + ": service={}, methodName={}", service, methodName);
             return null;
         }
@@ -184,7 +184,7 @@ public class ServiceInvokeUtils {
             }
 
             //转换为JSON字符串 智能处理返回结果
-            String jsonResult = (result instanceof String) ? (String) result : JacksonUtils.to(result);
+            String jsonResult = (result instanceof String) ? (String) result : JSONUtil.toJsonStr(result);
             log.info(METHOD_INVOCATION_SUCCESS_INFO + ": {}.{}", service.getClass().getSimpleName(), methodName);
             return jsonResult;
 
@@ -203,7 +203,7 @@ public class ServiceInvokeUtils {
      * @return 方法对象
      */
     private static Method findMethod(Class<?> clazz, String methodName, Class<?>[] paramTypes) {
-        if (clazz == null || StringUtils.isEmpty(methodName)) {
+        if (clazz == null || StrUtil.isEmpty(methodName)) {
             log.error(LOG_PREFIX + " 查找方法参数不能为空: clazz={}, methodName={}", clazz, methodName);
             return null;
         }
@@ -327,7 +327,7 @@ public class ServiceInvokeUtils {
      * @return 字符串值
      */
     public static String getStringValue(Map<String, Object> map, String key) {
-        if (map == null || StringUtils.isEmpty(key)) {
+        if (map == null || StrUtil.isEmpty(key)) {
             return null;
         }
         
@@ -346,7 +346,7 @@ public class ServiceInvokeUtils {
      * @return 整数值
      */
     public static Integer getIntValue(Map<String, Object> map, String key) {
-        if (map == null || StringUtils.isEmpty(key)) {
+        if (map == null || StrUtil.isEmpty(key)) {
             return null;
         }
         
@@ -373,7 +373,7 @@ public class ServiceInvokeUtils {
      * @return 布尔值
      */
     public static Boolean getBooleanValue(Map<String, Object> map, String key) {
-        if (map == null || StringUtils.isEmpty(key)) {
+        if (map == null || StrUtil.isEmpty(key)) {
             return null;
         }
         
@@ -397,7 +397,7 @@ public class ServiceInvokeUtils {
      * @return 长整型值
      */
     public static Long getLongValue(Map<String, Object> map, String key) {
-        if (map == null || StringUtils.isEmpty(key)) {
+        if (map == null || StrUtil.isEmpty(key)) {
             return null;
         }
         
@@ -427,7 +427,7 @@ public class ServiceInvokeUtils {
      */
     @SuppressWarnings("unchecked")
     public static <T> T getValue(Map<String, Object> map, String key, Class<T> targetType) {
-        if (map == null || StringUtils.isEmpty(key) || targetType == null) {
+        if (map == null || StrUtil.isEmpty(key) || targetType == null) {
             return null;
         }
         
@@ -487,8 +487,8 @@ public class ServiceInvokeUtils {
             }
             
             // 其他类型通过JSON转换
-            String jsonValue = JacksonUtils.to(value);
-            return JacksonUtils.from(jsonValue, targetType);
+            String jsonValue = JSONUtil.toJsonStr(value);
+            return JSONUtil.toBean(jsonValue, targetType);
             
         } catch (Exception e) {
             log.warn(PARAM_CONVERSION_FAILED_WARNING + ": {} -> {}, 值: {}, 错误: {}", 
