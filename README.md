@@ -6,16 +6,20 @@
 
 ```
 tool/
-├── java-service-utils/          # Java服务工具类
+├── java_service_utils/          # Java服务工具类
+├── knowledge-docs/              # 编程小知识文档库
+│   ├── java/                    # Java相关知识
+│   └── tools/                   # 工具类使用指南
 ├── linux_jar_deploy_ssh/        # Linux JAR部署脚本
 ├── tool_js/                     # 前端JavaScript工具库
 ├── win_process_killer_bat/       # Windows进程和环境变量管理工具
+├── sys_city.sql                 # 城市数据SQL文件
 └── README.md                    # 项目说明文档
 ```
 
 ## 🛠️ 工具介绍
 
-### 1. Java服务工具类 (java-service-utils)
+### 1. Java服务工具类 (java_service_utils)
 
 **功能：** 提供Spring Service方法动态调用和JSON转换功能
 
@@ -25,17 +29,17 @@ tool/
 - 支持泛型类型安全
 - 完善的异常处理和日志记录
 - 智能参数类型匹配
+- **已优化**：使用Hutool工具类替代自定义工具，提升性能和稳定性
 
 **核心文件：**
-- `ServiceInvokeUtils.java` - 主要工具类
-- `JacksonUtils.java` - JSON处理工具
-- `StringUtils.java` - 字符串工具
-- `JacksonException.java` - 自定义异常
+- `SpringServiceCaller.java` - 主要工具类（已优化）
+- 使用 `cn.hutool.core.util.StrUtil` - 字符串工具
+- 使用 `cn.hutool.json.JSONUtil` - JSON处理工具
 
 **使用示例：**
 ```java
 // 动态调用Service方法
-UserDTO user = ServiceInvokeUtils.invokeService(
+UserDTO user = SpringServiceCaller.invokeService(
     UserDTO.class,
     UserService.class,
     "getUserById",
@@ -43,10 +47,41 @@ UserDTO user = ServiceInvokeUtils.invokeService(
 );
 
 // JSON转Map
-Map<String, Object> map = ServiceInvokeUtils.convertJsonToMap(jsonString);
+Map<String, Object> map = SpringServiceCaller.convertJsonToMap(jsonString);
 ```
 
-### 2. Linux JAR部署脚本 (linux_jar_deploy_ssh)
+### 2. 编程小知识文档库 (knowledge-docs)
+
+**功能：** 收集和整理日常开发中的编程小知识、技巧和最佳实践
+
+**主要特性：**
+- **Java 开发指南**：Lombok注解、Spring依赖注入最佳实践
+- **工具类使用**：Hutool工具类详细使用指南
+- **实例驱动**：每个知识点都包含完整的代码示例
+- **快速查找**：支持IDE全局搜索，便于定位相关知识点
+- **持续更新**：根据实际项目经验不断完善内容
+
+**文档结构：**
+- `java/java-development-guide.md` - Java开发指南（Lombok + Spring）
+- `tools/hutool-usage.md` - Hutool工具类使用指南
+- `README.md` - 文档库使用说明和导航
+
+**知识点概览：**
+```
+📚 Java开发指南
+├── @RequiredArgsConstructor 自动构造函数生成
+├── final字段声明和依赖注入最佳实践
+└── 实际项目应用场景和代码示例
+
+🛠️ Hutool工具类
+├── StrUtil - 字符串处理工具
+├── JSONUtil - JSON转换工具
+├── CollUtil - 集合操作工具
+├── DateUtil - 日期时间工具
+└── FileUtil - 文件操作工具
+```
+
+### 3. Linux JAR部署脚本 (linux_jar_deploy_ssh)
 
 **功能：** Java服务一体化管理脚本，支持启动、停止、重启等操作
 
@@ -73,7 +108,7 @@ Map<String, Object> map = ServiceInvokeUtils.convertJsonToMap(jsonString);
 ./service.sh start -f /path/to/app.jar 1>stdout.log 2>stderr.log
 ```
 
-### 3. 前端JavaScript工具库 (tool_js)
+### 4. 前端JavaScript工具库 (tool_js)
 
 **功能：** 前端开发常用的JavaScript工具函数库
 
@@ -103,7 +138,7 @@ var elements = $._name('elementName');
 var host = $.u._host();
 ```
 
-### 4. Windows系统工具 (win_process_killer_bat)
+### 5. Windows系统工具 (win_process_killer_bat)
 
 **功能：** Windows系统进程管理和环境变量设置工具
 
@@ -178,9 +213,14 @@ cd tool
 2. **Java工具类使用**
 ```bash
 # 复制Java文件到项目中
-cp java-service-utils/*.java /your/project/src/main/java/utils/
+cp java_service_utils/*.java /your/project/src/main/java/utils/
 
-# 添加依赖到pom.xml或build.gradle
+# 添加Hutool依赖到pom.xml
+# <dependency>
+#     <groupId>cn.hutool</groupId>
+#     <artifactId>hutool-all</artifactId>
+#     <version>5.8.22</version>
+# </dependency>
 ```
 
 3. **Linux脚本使用**
@@ -208,7 +248,8 @@ win_process_killer_bat\env-var-setter.bat
 
 ## 📖 详细文档
 
-- [Java服务工具类详细说明](java-service-utils/README.md)
+- [Java服务工具类详细说明](java_service_utils/README.md)
+- [编程小知识文档库](knowledge-docs/README.md)
 - [Linux部署脚本使用手册](linux_jar_deploy_ssh/README.md)
 
 ## 🤝 贡献
@@ -226,8 +267,14 @@ win_process_killer_bat\env-var-setter.bat
 
 ## 🔄 更新日志
 
+- **v2.1** - 工具优化和文档完善
+  - **Java工具类优化**：使用Hutool替代自定义工具类，提升性能和稳定性
+  - **新增知识文档库**：添加knowledge-docs编程小知识文档库
+  - **文档结构优化**：完善README结构，添加详细的使用指南
+  - **项目结构更新**：修正文件夹命名，反映实际项目结构
+
 - **v2.0** - 重构项目结构，统一命名规范
-  - 将ServiceInvokeUtils重命名为java-service-utils
+  - 将ServiceInvokeUtils重命名为java_service_utils
   - 优化README文档结构
   - 完善各工具的使用说明
 
