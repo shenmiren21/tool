@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo 请输入要关闭的端口号（多个端口用空格分隔）:
